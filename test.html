@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test API — ACTEURS+</title>
+<style>
+  :root { --orange:#C97A0A; --bg:#000; --card:#1A1A1A; --gray:#999; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:#fff;
+         font-family:'Segoe UI',Arial,sans-serif; }
+  h1 { font-size:22px; letter-spacing:.5px; }
+  h1 span { color:var(--orange); }
+  .card { background:var(--card); border:1px solid rgba(201,122,10,.25);
+          border-radius:6px; padding:20px; margin:18px 0; max-width:460px; }
+  h2 { margin:0 0 14px; font-size:16px; color:var(--orange); }
+  label { display:block; font-size:13px; color:var(--gray); margin:10px 0 4px; }
+  input { width:100%; padding:10px; background:#000; border:1px solid #333;
+          border-radius:6px; color:#fff; font-size:14px; }
+  button { margin-top:16px; width:100%; padding:11px; background:var(--orange);
+           color:#fff; border:none; border-radius:6px; font-weight:bold;
+           font-size:14px; cursor:pointer; }
+  button:hover { opacity:.9; }
+  pre { background:#000; border:1px solid #333; border-radius:6px; padding:12px;
+        font-size:12px; white-space:pre-wrap; word-break:break-all; max-width:460px;
+        min-height:40px; color:#bdbdbd; }
+  .ok { color:#7CFC9A; } .err { color:#ff7a7a; }
+</style>
+</head>
+<body>
+  <h1>Test API <span>ACTEURS+</span></h1>
+
+  <div class="card">
+    <h2>1. Creer un compte</h2>
+    <label>Nom</label>
+    <input id="r_name" value="Test Acteur">
+    <label>Email</label>
+    <input id="r_email" value="test@acteurplus.com">
+    <label>Mot de passe</label>
+    <input id="r_pass" value="password123">
+    <label>Type</label>
+    <input id="r_type" value="talent">
+    <button onclick="register()">S'inscrire</button>
+  </div>
+
+  <div class="card">
+    <h2>2. Se connecter</h2>
+    <label>Email</label>
+    <input id="l_email" value="test@acteurplus.com">
+    <label>Mot de passe</label>
+    <input id="l_pass" value="password123">
+    <button onclick="login()">Se connecter</button>
+  </div>
+
+  <h2 style="color:var(--orange);max-width:460px;">Reponse du serveur</h2>
+  <pre id="out">En attente...</pre>
+
+<script>
+  const API = 'http://localhost/acteurs-plus-api';
+  const out = document.getElementById('out');
+
+  function show(data, ok) {
+    out.className = ok ? 'ok' : 'err';
+    out.textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function call(endpoint, body) {
+    try {
+      const res = await fetch(API + '/' + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      show(data, data.ok === true);
+    } catch (e) {
+      show({ error: 'Impossible de joindre l\'API : ' + e.message }, false);
+    }
+  }
+
+  function register() {
+    call('register.php', {
+      name:      document.getElementById('r_name').value,
+      email:     document.getElementById('r_email').value,
+      password:  document.getElementById('r_pass').value,
+      user_type: document.getElementById('r_type').value
+    });
+  }
+
+  function login() {
+    call('login.php', {
+      email:    document.getElementById('l_email').value,
+      password: document.getElementById('l_pass').value
+    });
+  }
+</script>
+</body>
+</html>
