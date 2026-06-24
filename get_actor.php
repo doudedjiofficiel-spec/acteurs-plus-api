@@ -63,7 +63,7 @@ $gallery_items = fetchList($pdo,
      FROM gallery_items WHERE user_id = :id', $id);
 
 $ratings_reviews_list = fetchList($pdo,
-    'SELECT id, author, rating, comment, created_at FROM reviews WHERE user_id = :id', $id);
+    'SELECT id, author, author_uid, rating, comment, recommend, created_at FROM reviews WHERE user_id = :id', $id);
 
 // metiers secondaires : liste de strings (colonne `value`), table partagee avec le technicien
 $secRows = fetchList($pdo,

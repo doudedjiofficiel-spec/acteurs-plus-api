@@ -68,7 +68,7 @@ $gallery_items = fetchList($pdo,
      FROM gallery_items WHERE user_id = :id', $id);
 
 $ratings_reviews_list = fetchList($pdo,
-    'SELECT id, author, rating, comment, created_at FROM reviews WHERE user_id = :id', $id);
+    'SELECT id, author, author_uid, rating, comment, recommend, created_at FROM reviews WHERE user_id = :id', $id);
 
 $filmRows = fetchList($pdo,
     'SELECT id, project_title, project_type, role, production_name, director,
