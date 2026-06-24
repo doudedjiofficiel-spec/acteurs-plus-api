@@ -60,10 +60,27 @@ $stmt->execute([
 
 $userId = (int) $pdo->lastInsertId();
 
+// ---- Session immediate : un nouvel inscrit est connecte tout de suite ----
+// On cree un jeton (meme logique que login.php) pour qu'il puisse ecrire en base
+// des l'inscription (publier un casting, sauver son profil...) sans 401.
+$token      = bin2hex(random_bytes(32));
+$expires_at = date('Y-m-d H:i:s', strtotime('+30 days'));
+
+$sessionStmt = $pdo->prepare(
+    'INSERT INTO sessions (token, user_id, expires_at)
+     VALUES (:token, :user_id, :expires_at)'
+);
+$sessionStmt->execute([
+    ':token'      => $token,
+    ':user_id'    => $userId,
+    ':expires_at' => $expires_at,
+]);
+
 // ---- Reponse (on ne renvoie JAMAIS le mot de passe) ----
 json_response([
-    'ok'   => true,
-    'user' => [
+    'ok'    => true,
+    'token' => $token,
+    'user'  => [
         'id'        => $userId,
         'name'      => $name,
         'email'     => $email,
