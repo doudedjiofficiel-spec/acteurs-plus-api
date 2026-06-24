@@ -1,10 +1,13 @@
 <?php
 // =====================================================================
-//  me.php — renvoie l'utilisateur lie au jeton (endpoint de test/protege)
-//  Appel : GET ou POST http://localhost/acteurs-plus-api/me.php
-//  Header : Authorization: Bearer <token>
-//  - token valide   -> {ok:true, user:{...}}
-//  - token absent/faux/expire -> 401 (gere par require_auth)
+//  me.php — QUI SUIS-JE ? (identite de l'utilisateur connecte)
+//  Appel : GET http://localhost/acteurs-plus-api/me.php
+//  Header OBLIGATOIRE : Authorization: Bearer <token>
+// ---------------------------------------------------------------------
+//  Renvoie SEULEMENT l'identite (id, name, email, user_type).
+//  Le profil complet se recupere ensuite via get_actor.php (acteur)
+//  ou get_technician.php (technicien) -> un fichier = un seul role.
+//  id renvoye en STRING (le React compare les id en texte).
 // =====================================================================
 
 require_once 'config.php';
@@ -26,9 +29,9 @@ if (!$user) {
 json_response([
     'ok'   => true,
     'user' => [
-        'id'        => (int) $user['id'],
+        'id'        => (string) $user['id'],   // string pour coller au React
         'name'      => $user['name'],
         'email'     => $user['email'],
-        'user_type' => $user['user_type'],
+        'user_type' => $user['user_type'],      // talent | professional | recruiter
     ],
 ]);

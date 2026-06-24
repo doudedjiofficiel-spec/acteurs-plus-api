@@ -40,16 +40,22 @@ if ($stmt->fetch()) {
 // ---- Hachage du mot de passe (JAMAIS stocke en clair) ----
 $hash = password_hash($password, PASSWORD_DEFAULT);
 
+// Sexe : on n'accepte QUE 'H' ou 'F' (sinon NULL — comptes sans genre renseigne).
+$gender = (isset($input['gender']) && ($input['gender'] === 'H' || $input['gender'] === 'F'))
+    ? $input['gender']
+    : null;
+
 // ---- Insertion (requete preparee = pas d'injection SQL possible) ----
 $stmt = $pdo->prepare(
-    'INSERT INTO users (name, email, password_hash, user_type)
-     VALUES (:name, :email, :hash, :type)'
+    'INSERT INTO users (name, email, password_hash, user_type, gender)
+     VALUES (:name, :email, :hash, :type, :gender)'
 );
 $stmt->execute([
-    ':name'  => $name,
-    ':email' => $email,
-    ':hash'  => $hash,
-    ':type'  => $userType,
+    ':name'   => $name,
+    ':email'  => $email,
+    ':hash'   => $hash,
+    ':type'   => $userType,
+    ':gender' => $gender,
 ]);
 
 $userId = (int) $pdo->lastInsertId();

@@ -4,9 +4,26 @@
 //  Tous les endpoints font : require_once 'config.php';
 // =====================================================================
 
-// ---- 1. CORS : autorise ton React (Vite) a appeler cette API ----
-// En developpement, '*' suffit. En production on mettra ton vrai domaine.
-header('Access-Control-Allow-Origin: *');
+// =====================================================================
+//  === A MODIFIER EN PRODUCTION ===
+//  Une fois en ligne, ne changez QUE ce bloc (aucune autre ligne) :
+//   - $DB_HOST / $DB_NAME / $DB_USER / $DB_PASS : identifiants MySQL de
+//     l'hebergeur. Creez un utilisateur DEDIE avec mot de passe ; ne gardez
+//     JAMAIS root / mot de passe vide en production.
+//   - $ALLOWED_ORIGIN : remplacez '*' par l'URL EXACTE du front
+//     (ex. 'https://votre-domaine.com') pour ne plus autoriser toutes origines.
+//  Les valeurs par defaut ci-dessous sont celles du LOCAL (XAMPP) :
+//  ne pas y toucher tant qu'on developpe en local.
+// =====================================================================
+$DB_HOST = '127.0.0.1';
+$DB_NAME = 'acteurs_plus';
+$DB_USER = 'root';
+$DB_PASS = '';                 // LOCAL (XAMPP) : root sans mot de passe. PROD : mot de passe d'un user dedie.
+$ALLOWED_ORIGIN = '*';         // LOCAL : toutes origines. PROD : 'https://votre-domaine.com'
+// =====================================================================
+
+// ---- 1. CORS : autorise le front (Vite) a appeler cette API ----
+header('Access-Control-Allow-Origin: ' . $ALLOWED_ORIGIN);
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json; charset=utf-8');
@@ -18,11 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// ---- 2. Connexion MySQL (PDO) ----
-$DB_HOST = '127.0.0.1';
-$DB_NAME = 'acteurs_plus';
-$DB_USER = 'root';
-$DB_PASS = '';   // XAMPP : mot de passe root VIDE par defaut. Mets le tien si tu en as un.
+// ---- 2. Connexion MySQL (PDO) — utilise les variables du bloc config ci-dessus ----
 
 try {
     $pdo = new PDO(
