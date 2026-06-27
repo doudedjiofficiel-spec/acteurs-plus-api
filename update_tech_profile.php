@@ -15,6 +15,7 @@
 
 require_once 'config.php';
 require_once 'auth_check.php';
+require_once 'validators.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['ok' => false, 'error' => 'Methode non autorisee'], 405);
@@ -22,6 +23,29 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $userId = require_auth($pdo);
 $input  = get_json_input();
+
+// ---- Garde-fou taille/format des images (anti-DoS / bloat) ----
+foreach (['image', 'cover_image'] as $imgKey) {
+    if (array_key_exists($imgKey, $input)) {
+        $err = image_value_error($input[$imgKey]);
+        if ($err !== null) {
+            json_response(['ok' => false, 'error' => $err], 422);
+        }
+    }
+}
+
+// ---- Garde-fou longueur des champs texte (bornes larges, anti-bloat) ----
+$TEXT_LIMITS = [
+    'name' => MAX_NAME, 'about' => MAX_BIO,
+    'role' => MAX_SHORT, 'location' => MAX_SHORT,
+    'availability_status' => MAX_SHORT, 'availability_note' => MAX_SHORT,
+    'daily_rate' => MAX_SHORT,
+];
+foreach ($TEXT_LIMITS as $k => $max) {
+    if (array_key_exists($k, $input) && text_too_long($input[$k], $max)) {
+        json_response(['ok' => false, 'error' => "Champ « {$k} » trop long (max {$max} caracteres)."], 422);
+    }
+}
 
 // ---- 1. Champs de la table users : name + image + cover_image ----
 // On ne met a jour QUE les colonnes reellement envoyees (cle presente dans

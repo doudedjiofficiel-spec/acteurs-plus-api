@@ -18,12 +18,20 @@ require_once 'config.php';
 require_once 'auth_check.php';
 require_once 'uid_helpers.php';
 require_once 'notif_helper.php';
+require_once 'rate_limit.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['ok' => false, 'error' => 'Methode non autorisee'], 405);
 }
 
 $authorId = require_auth($pdo);
+
+// ---- Anti-spam : pas plus de 30 avis / utilisateur / heure ----
+// (deja attenue par l'index UNIQUE 1 avis/auteur/cible, mais borne les tentatives.)
+if (rl_blocked($pdo, 'review', 'u:' . $authorId, 30, 3600)) {
+    json_response(['ok' => false, 'error' => 'Trop d\'avis recents. Reessayez plus tard.'], 429);
+}
+rl_hit($pdo, 'review', 'u:' . $authorId);
 
 $in       = get_json_input();
 $targetId = uid_to_id($in['targetUid'] ?? $in['target_uid'] ?? '');

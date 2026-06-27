@@ -10,6 +10,7 @@
 
 require_once 'config.php';
 require_once 'auth_check.php';
+require_once 'validators.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['ok' => false, 'error' => 'Methode non autorisee'], 405);
@@ -21,6 +22,22 @@ $items  = $input['gallery'] ?? null;
 
 if (!is_array($items)) {
     json_response(['ok' => false, 'error' => 'Le champ "gallery" doit etre une liste'], 422);
+}
+
+// ---- Garde-fous AVANT toute ecriture (anti POST geant / bloat) ----
+// Nombre d'elements borne (evite un envoi enorme lie a max_allowed_packet).
+if (count($items) > MAX_GALLERY_ITEMS) {
+    json_response(['ok' => false, 'error' => 'Trop d\'elements (max ' . MAX_GALLERY_ITEMS . ' par envoi).'], 422);
+}
+// Taille/format de chaque media (les entrees vides sont ignorees plus bas).
+foreach ($items as $it) {
+    if (!is_array($it)) { continue; }
+    $u = $it['url'] ?? '';
+    if (!is_string($u) || trim($u) === '') { continue; }
+    $err = image_value_error($u);
+    if ($err !== null) {
+        json_response(['ok' => false, 'error' => $err], 422);
+    }
 }
 
 try {

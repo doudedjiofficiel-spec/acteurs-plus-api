@@ -15,6 +15,7 @@
 
 require_once 'config.php';
 require_once 'auth_check.php';
+require_once 'validators.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['ok' => false, 'error' => 'Methode non autorisee'], 405);
@@ -24,6 +25,34 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $userId = require_auth($pdo);
 
 $input = get_json_input();
+
+// ---- Garde-fou taille/format des images (anti-DoS / bloat) ----
+foreach (['image', 'cover_image'] as $imgKey) {
+    if (array_key_exists($imgKey, $input)) {
+        $err = image_value_error($input[$imgKey]);
+        if ($err !== null) {
+            json_response(['ok' => false, 'error' => $err], 422);
+        }
+    }
+}
+
+// ---- Garde-fou longueur des champs texte (bornes larges, anti-bloat) ----
+$TEXT_LIMITS = [
+    'name' => MAX_NAME, 'about' => MAX_BIO,
+    'showreelLink' => MAX_URL, 'cvUrl' => MAX_URL,
+    'stageName' => MAX_SHORT, 'role' => MAX_SHORT, 'nationality' => MAX_SHORT,
+    'height' => MAX_SHORT, 'weight' => MAX_SHORT, 'eyesColor' => MAX_SHORT,
+    'hairColor' => MAX_SHORT, 'morphology' => MAX_SHORT, 'accents' => MAX_SHORT,
+    'dialects' => MAX_SHORT, 'location' => MAX_SHORT, 'country' => MAX_SHORT,
+    'city' => MAX_SHORT, 'mobility_type' => MAX_SHORT, 'intervention_zone' => MAX_SHORT,
+    'showreelType' => MAX_SHORT, 'professional_organization' => MAX_SHORT,
+    'currency' => MAX_SHORT,
+];
+foreach ($TEXT_LIMITS as $k => $max) {
+    if (array_key_exists($k, $input) && text_too_long($input[$k], $max)) {
+        json_response(['ok' => false, 'error' => "Champ « {$k} » trop long (max {$max} caracteres)."], 422);
+    }
+}
 
 // ---- LISTE BLANCHE : cle envoyee par React  =>  colonne en base ----
 // (seuls ces champs simples de l'acteur sont acceptes pour ce commit)

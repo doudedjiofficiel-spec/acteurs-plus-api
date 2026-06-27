@@ -71,6 +71,17 @@ header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json; charset=utf-8');
 
+// ---- En-tetes de securite (defense en profondeur, toutes reponses API) ----
+//  - nosniff : empeche le navigateur de "deviner" un type MIME (anti-sniffing).
+//  - DENY    : l'API JSON n'a aucune raison d'etre affichee dans une iframe.
+//  - no-referrer : ne fuite pas l'URL de l'API dans l'en-tete Referer.
+//  - HSTS    : force HTTPS cote navigateur. SANS effet en HTTP (dev) -> inoffensif
+//              en local ; protege en prod (a servir derriere HTTPS).
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+
 // Avant un POST, le navigateur envoie une requete "OPTIONS" (preflight).
 // On repond OK immediatement, sans executer le reste.
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {

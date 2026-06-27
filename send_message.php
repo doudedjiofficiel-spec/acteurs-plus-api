@@ -15,6 +15,8 @@ require_once 'config.php';
 require_once 'auth_check.php';
 require_once 'uid_helpers.php';
 require_once 'notif_helper.php';
+require_once 'rate_limit.php';
+require_once 'validators.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['ok' => false, 'error' => 'Methode non autorisee'], 405);
@@ -22,12 +24,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $meId = require_auth($pdo);
 
+// ---- Anti-spam : pas plus de 20 messages / utilisateur / 60 s ----
+if (rl_blocked($pdo, 'msg', 'u:' . $meId, 20, 60)) {
+    json_response(['ok' => false, 'error' => 'Trop de messages envoyes. Patientez un instant.'], 429);
+}
+rl_hit($pdo, 'msg', 'u:' . $meId);
+
 $in      = get_json_input();
 $otherId = uid_to_id($in['targetUid'] ?? $in['target_uid'] ?? '');
 $text    = trim($in['text'] ?? '');
 
 if ($text === '') {
     json_response(['ok' => false, 'error' => 'Message vide'], 422);
+}
+if (mb_strlen($text) > MAX_MESSAGE_CHARS) {
+    json_response(['ok' => false, 'error' => 'Message trop long (max ' . MAX_MESSAGE_CHARS . ' caracteres).'], 422);
 }
 if ($otherId <= 0) {
     json_response(['ok' => false, 'error' => 'Destinataire invalide'], 422);

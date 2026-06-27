@@ -14,12 +14,20 @@
 
 require_once 'config.php';
 require_once 'auth_check.php';
+require_once 'validators.php';
+require_once 'rate_limit.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['ok' => false, 'error' => 'Methode non autorisee'], 405);
 }
 
 $userId = require_auth($pdo);
+
+// ---- Anti-spam : pas plus de 20 annonces / utilisateur / heure ----
+if (rl_blocked($pdo, 'create_offer', 'u:' . $userId, 20, 3600)) {
+    json_response(['ok' => false, 'error' => 'Trop de publications recentes. Reessayez plus tard.'], 429);
+}
+rl_hit($pdo, 'create_offer', 'u:' . $userId);
 
 // ---- Reserve aux recruteurs : on lit le type EN BASE (jamais le client) ----
 $st = $pdo->prepare('SELECT user_type FROM users WHERE id = :id');
@@ -35,6 +43,19 @@ $in = get_json_input();
 $title = trim($in['title'] ?? '');
 if ($title === '') {
     json_response(['ok' => false, 'error' => 'Le titre est obligatoire'], 422);
+}
+
+// Garde-fou taille/format du visuel.
+$imgErr = image_value_error($in['image'] ?? '');
+if ($imgErr !== null) {
+    json_response(['ok' => false, 'error' => $imgErr], 422);
+}
+
+// Garde-fou longueur des champs texte principaux (bornes larges).
+foreach (['title' => MAX_TITLE, 'description' => MAX_DESC, 'company' => MAX_COMPANY] as $k => $max) {
+    if (text_too_long($in[$k] ?? null, $max)) {
+        json_response(['ok' => false, 'error' => "Champ « {$k} » trop long (max {$max} caracteres)."], 422);
+    }
 }
 
 // Normalise une liste de criteres (tableau ou "a, b, c") -> tableau de strings.
