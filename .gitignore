@@ -1,0 +1,8 @@
+# Secrets locaux / production — NE JAMAIS versionner
+config.local.php
+*.local.php
+.env
+.env.*
+
+# Divers
+*.log

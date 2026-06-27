@@ -19,6 +19,16 @@ $email    = trim($input['email'] ?? '');
 $password = $input['password'] ?? '';
 $userType = trim($input['user_type'] ?? 'talent');
 
+// ---- SECURITE : liste blanche stricte du role ----
+// Le user_type vient du CLIENT : on n'accepte QUE les roles legitimes d'inscription.
+// Toute autre valeur (dont "admin", ou une valeur exotique) retombe sur "talent".
+// Le role "admin" ne s'attribue JAMAIS par une route publique : il se pose
+// uniquement a la main en base (UPDATE users SET user_type='admin' WHERE id=...).
+$ALLOWED_TYPES = ['talent', 'professional', 'recruiter'];
+if (!in_array($userType, $ALLOWED_TYPES, true)) {
+    $userType = 'talent';
+}
+
 // ---- Validation ----
 if ($name === '' || $email === '' || $password === '') {
     json_response(['ok' => false, 'error' => 'Nom, email et mot de passe sont obligatoires'], 422);
