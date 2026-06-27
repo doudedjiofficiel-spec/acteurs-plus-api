@@ -19,3 +19,11 @@ $DB_PASS = 'VOTRE_MOT_DE_PASSE';
 
 // ---- CORS : domaine EXACT du front de production ----
 $ALLOWED_ORIGIN = 'https://votre-domaine.com';
+
+// ---- FRONT_BASE : base des liens construits par l'API (reinitialisation
+//      de mot de passe). request_password_reset.php fabrique le lien
+//      "<FRONT_BASE>/reinitialiser-mot-de-passe?token=...".
+//      PROD : domaine HTTPS du front (souvent identique a ALLOWED_ORIGIN).
+//      Si absent ici, l'API retombe sur http://localhost:5175 (dev) -> a
+//      DEFINIR en prod, sinon les emails de reset pointeraient vers localhost.
+$FRONT_BASE = 'https://votre-domaine.com';
