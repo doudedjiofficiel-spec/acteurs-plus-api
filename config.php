@@ -73,7 +73,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 // Avant un POST, le navigateur envoie une requete "OPTIONS" (preflight).
 // On repond OK immediatement, sans executer le reste.
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
     http_response_code(200);
     exit;
 }

@@ -6,10 +6,18 @@
 // =====================================================================
 
 require_once 'config.php';
+require_once 'rate_limit.php';
 
 // On n'accepte que le POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['ok' => false, 'error' => 'Methode non autorisee'], 405);
+}
+
+// ---- Anti-spam : pas plus de 5 creations de compte / IP / 60 min ----
+$ip    = client_ip();
+$ipKey = 'ip:' . $ip;
+if (rl_blocked($pdo, 'register', $ipKey, 5, 3600)) {
+    json_response(['ok' => false, 'error' => 'Trop de comptes crees depuis ce reseau. Réessayez plus tard.'], 429);
 }
 
 $input = get_json_input();
@@ -69,6 +77,9 @@ $stmt->execute([
 ]);
 
 $userId = (int) $pdo->lastInsertId();
+
+// ---- Anti-spam : on compte cette creation reussie pour l'IP ----
+rl_hit($pdo, 'register', $ipKey);
 
 // ---- Session immediate : un nouvel inscrit est connecte tout de suite ----
 // On cree un jeton (meme logique que login.php) pour qu'il puisse ecrire en base

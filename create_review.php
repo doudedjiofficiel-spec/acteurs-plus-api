@@ -58,10 +58,19 @@ $authorName = $author['name'] ?? 'Anonyme';
 try {
     $pdo->beginTransaction();
 
-    // ---- INSERT de l'avis ----
+    // ---- UPSERT de l'avis : 1 seul avis par (cible, auteur) ----
+    // Grace a l'index UNIQUE (user_id, author_uid), un 2e avis du meme auteur
+    // sur la meme cible MET A JOUR le sien (note/commentaire) au lieu de creer
+    // un doublon -> spam d'avis structurellement impossible, reviews_count exact.
     $ins = $pdo->prepare(
-        'INSERT INTO reviews (user_id, author, author_uid, rating, comment, recommend)
-         VALUES (:user_id, :author, :author_uid, :rating, :comment, :recommend)'
+        'INSERT INTO reviews (user_id, author, author_uid, rating, comment, recommend, created_at)
+         VALUES (:user_id, :author, :author_uid, :rating, :comment, :recommend, NOW())
+         ON DUPLICATE KEY UPDATE
+            author    = VALUES(author),
+            rating    = VALUES(rating),
+            comment   = VALUES(comment),
+            recommend = VALUES(recommend),
+            created_at = NOW()'
     );
     $ins->execute([
         ':user_id'    => $targetId,
@@ -71,7 +80,11 @@ try {
         ':comment'    => $comment !== '' ? $comment : null,
         ':recommend'  => $recommend,
     ]);
-    $reviewId = (int) $pdo->lastInsertId();
+
+    // lastInsertId vaut 0 sur un UPDATE : on relit l'id du couple (cible, auteur).
+    $rid = $pdo->prepare('SELECT id FROM reviews WHERE user_id = :u AND author_uid = :a');
+    $rid->execute([':u' => $targetId, ':a' => $authorId]);
+    $reviewId = (int) $rid->fetchColumn();
 
     // ---- Recalcul cache reputation (moyenne + nombre) sur la cible ----
     $upd = $pdo->prepare(

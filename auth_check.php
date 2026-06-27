@@ -50,8 +50,13 @@ function require_auth($pdo) {
         json_response(['ok' => false, 'error' => 'Non authentifié'], 401);
     }
 
+    // On lit la session ET le statut du compte (jointure) : un compte banni
+    // ne doit plus passer, meme avec un token encore valide (I5).
     $stmt = $pdo->prepare(
-        'SELECT user_id, expires_at FROM sessions WHERE token = :token'
+        'SELECT s.user_id, s.expires_at, u.account_status
+         FROM sessions s
+         JOIN users u ON u.id = s.user_id
+         WHERE s.token = :token'
     );
     $stmt->execute([':token' => $token]);
     $session = $stmt->fetch();
@@ -59,6 +64,14 @@ function require_auth($pdo) {
     // Token introuvable OU expire -> session refusee.
     if (!$session || strtotime($session['expires_at']) < time()) {
         json_response(['ok' => false, 'error' => 'Session invalide ou expirée'], 401);
+    }
+
+    // Compte banni -> on PURGE immediatement toutes ses sessions (le token
+    // devient inutilisable des maintenant) puis on refuse l'acces.
+    if ($session['account_status'] === 'banned') {
+        $del = $pdo->prepare('DELETE FROM sessions WHERE user_id = :uid');
+        $del->execute([':uid' => (int) $session['user_id']]);
+        json_response(['ok' => false, 'error' => 'Compte suspendu'], 403);
     }
 
     return (int) $session['user_id'];
