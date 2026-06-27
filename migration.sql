@@ -28,3 +28,19 @@ JOIN reviews r2
 --     erreur (l'index est deja en place).
 ALTER TABLE reviews
   ADD UNIQUE KEY uniq_review_author (user_id, author_uid);
+
+-- 3. Tokens de reinitialisation de mot de passe ----------------------
+-- Flux "mot de passe oublie" : token a usage unique (used) + expiration
+-- (expires_at). FK ON DELETE CASCADE -> supprimer un compte purge ses tokens.
+CREATE TABLE IF NOT EXISTS password_resets (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id    BIGINT UNSIGNED NOT NULL,
+    token      CHAR(64)        NOT NULL,
+    expires_at DATETIME        NOT NULL,
+    used       TINYINT(1)      NOT NULL DEFAULT 0,
+    created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_pr_token (token),
+    KEY idx_pr_user (user_id),
+    CONSTRAINT fk_pr_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

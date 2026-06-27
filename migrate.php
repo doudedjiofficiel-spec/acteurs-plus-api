@@ -7,7 +7,8 @@
 //  Cree :
 //   1. la table `rate_limits` (anti-brute-force / anti-spam) ;
 //   2. l'unicite des avis : 1 avis par (cible, auteur) -> dedoublonne
-//      l'existant puis ajoute un index UNIQUE.
+//      l'existant puis ajoute un index UNIQUE ;
+//   3. la table `password_resets` (flux mot de passe oublie : tokens 1h, usage unique).
 //  Re-executable sans risque (verifie l'existant avant d'agir).
 //  Equivalent SQL pour phpMyAdmin : voir migration.sql.
 // =====================================================================
@@ -64,6 +65,25 @@ try {
     } else {
         step("Index UNIQUE '{$idxName}' deja present.");
     }
+
+    // ---- 3. Table password_resets (tokens de reinitialisation de mot de passe) ----
+    // Token a usage unique (used) avec expiration (expires_at). FK ON DELETE CASCADE :
+    // supprimer un compte purge ses tokens. Voir request_password_reset.php / reset_password.php.
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS password_resets (
+            id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id    BIGINT UNSIGNED NOT NULL,
+            token      CHAR(64)        NOT NULL,
+            expires_at DATETIME        NOT NULL,
+            used       TINYINT(1)      NOT NULL DEFAULT 0,
+            created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_pr_token (token),
+            KEY idx_pr_user (user_id),
+            CONSTRAINT fk_pr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    step("Table 'password_resets' prete.");
 
     echo "== Migration terminee avec succes. ==\n";
 } catch (Throwable $e) {
